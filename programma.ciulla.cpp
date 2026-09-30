@@ -42,7 +42,7 @@ constexpr COLORREF kTextColor = RGB(18, 23, 31);
 constexpr COLORREF kSubTextColor = RGB(80, 90, 110);
 
 struct Settings {
-    std::wstring message = L"⚠️ CAPS LOCK ATTIVO";
+    std::wstring message = L"CAPS LOCK ATTIVO!";
     DWORD durationSeconds = 3;
     bool sound = true;
     bool autostart = false;
@@ -100,7 +100,7 @@ void ConfigureAutostart(bool enabled) {
 void SaveSettings() {
     wchar_t text[512]{};
     GetWindowTextW(g_message, text, ARRAYSIZE(text));
-    g_settings.message = text[0] ? text : L"⚠️ CAPS LOCK ATTIVO";
+    g_settings.message = text[0] ? text : L"CAPS LOCK ATTIVO!";
     g_settings.durationSeconds = std::clamp<DWORD>(static_cast<DWORD>(GetDlgItemInt(g_main, ID_DURATION, nullptr, FALSE)), 1, 60);
     g_settings.sound = SendMessageW(g_sound, BM_GETCHECK, 0, 0) == BST_CHECKED;
     g_settings.autostart = SendMessageW(g_autostart, BM_GETCHECK, 0, 0) == BST_CHECKED;
@@ -116,7 +116,7 @@ void SaveSettings() {
         RegCloseKey(key);
     }
     ConfigureAutostart(g_settings.autostart);
-    MessageBoxW(g_main, L"✅ Impostazioni salvate correttamente.", L"Caps Lock Notifier", MB_OK | MB_ICONINFORMATION);
+    MessageBoxW(g_main, L"Impostazioni salvate correttamente.", L"Caps Lock Notifier", MB_OK | MB_ICONINFORMATION);
 }
 
 void PositionPopup() {
@@ -192,7 +192,7 @@ void PaintMainWindow(HWND hwnd) {
 }
 
 void CreateMainControls(HWND hwnd) {
-    AddLabel(hwnd, L"📝 Messaggio da mostrare quando Caps Lock viene attivato:", 24, 92, 512, 22, g_smallFont);
+    AddLabel(hwnd, L"Messaggio da mostrare quando Caps Lock viene attivato:", 24, 92, 512, 22, g_smallFont);
     g_message = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", g_settings.message.c_str(),
                                 WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | WS_TABSTOP,
                                 24, 118, 512, 32, hwnd,
@@ -200,24 +200,24 @@ void CreateMainControls(HWND hwnd) {
     SendMessageW(g_message, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
     SetWindowTextW(g_message, g_settings.message.c_str());
 
-    AddLabel(hwnd, L"⏱️ Durata della notifica (secondi, 1-60):", 24, 168, 300, 22, g_smallFont);
+    AddLabel(hwnd, L"Durata della notifica (secondi, 1-60):", 24, 168, 300, 22, g_smallFont);
     g_duration = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", std::to_wstring(g_settings.durationSeconds).c_str(),
                                  WS_CHILD | WS_VISIBLE | ES_NUMBER | WS_TABSTOP,
                                  24, 194, 96, 32, hwnd,
                                  reinterpret_cast<HMENU>(ID_DURATION), g_instance, nullptr);
     SendMessageW(g_duration, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
 
-    g_sound = CreateWindowW(L"BUTTON", L"🔊 Riproduci un suono", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
+    g_sound = CreateWindowW(L"BUTTON", L"Riproduci un suono", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
                            24, 240, 240, 28, hwnd, reinterpret_cast<HMENU>(ID_SOUND), g_instance, nullptr);
     SendMessageW(g_sound, BM_SETCHECK, g_settings.sound ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(g_sound, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
 
-    g_autostart = CreateWindowW(L"BUTTON", L"🚀 Avvia automaticamente con Windows", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
+    g_autostart = CreateWindowW(L"BUTTON", L"Avvia automaticamente con Windows", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
                                24, 274, 360, 28, hwnd, reinterpret_cast<HMENU>(ID_AUTOSTART), g_instance, nullptr);
     SendMessageW(g_autostart, BM_SETCHECK, g_settings.autostart ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(g_autostart, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
 
-    HWND save = CreateWindowW(L"BUTTON", L"💾 Salva impostazioni", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+    HWND save = CreateWindowW(L"BUTTON", L"Salva impostazioni", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
                              24, 316, 200, 38, hwnd, reinterpret_cast<HMENU>(ID_SAVE), g_instance, nullptr);
     SendMessageW(save, WM_SETFONT, reinterpret_cast<WPARAM>(g_titleFont), TRUE);
 }
@@ -245,9 +245,8 @@ LRESULT CALLBACK PopupProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
         RECT rect{};
         GetClientRect(hwnd, &rect);
 
-        const RECT outer = rect;
         HBRUSH fillBrush = CreateSolidBrush(RGB(255, 136, 64));
-        FillRect(dc, &outer, fillBrush);
+        FillRect(dc, &rect, fillBrush);
         DeleteObject(fillBrush);
 
         RECT inner = rect;
@@ -278,9 +277,9 @@ void ShowContextMenu() {
     POINT point{};
     GetCursorPos(&point);
     HMENU menu = CreatePopupMenu();
-    AppendMenuW(menu, MF_STRING, ID_TRAY_SHOW, L"⚙️ Apri configurazione");
+    AppendMenuW(menu, MF_STRING, ID_TRAY_SHOW, L"Apri configurazione");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(menu, MF_STRING, ID_TRAY_EXIT, L"❌ Esci");
+    AppendMenuW(menu, MF_STRING, ID_TRAY_EXIT, L"Esci");
     SetForegroundWindow(g_main);
     TrackPopupMenu(menu, TPM_RIGHTBUTTON, point.x, point.y, 0, g_main, nullptr);
     DestroyMenu(menu);
