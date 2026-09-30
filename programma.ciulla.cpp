@@ -35,8 +35,14 @@ constexpr UINT ID_AUTOSTART = 104;
 constexpr UINT ID_TRAY_SHOW = 200;
 constexpr UINT ID_TRAY_EXIT = 201;
 
+constexpr COLORREF kBgColor = RGB(245, 247, 250);
+constexpr COLORREF kHeaderColor = RGB(30, 82, 165);
+constexpr COLORREF kAccentColor = RGB(255, 136, 64);
+constexpr COLORREF kTextColor = RGB(18, 23, 31);
+constexpr COLORREF kSubTextColor = RGB(80, 90, 110);
+
 struct Settings {
-    std::wstring message = L"⚠️  CAPS LOCK ATTIVO!";
+    std::wstring message = L"⚠️ CAPS LOCK ATTIVO";
     DWORD durationSeconds = 3;
     bool sound = true;
     bool autostart = false;
@@ -54,7 +60,7 @@ Settings g_settings;
 bool g_previousCaps = false;
 HFONT g_titleFont = nullptr;
 HFONT g_normalFont = nullptr;
-HBRUSH g_bgBrush = nullptr;
+HFONT g_smallFont = nullptr;
 
 std::wstring AppPath() {
     wchar_t path[MAX_PATH]{};
@@ -94,7 +100,7 @@ void ConfigureAutostart(bool enabled) {
 void SaveSettings() {
     wchar_t text[512]{};
     GetWindowTextW(g_message, text, ARRAYSIZE(text));
-    g_settings.message = text[0] ? text : L"⚠️  CAPS LOCK ATTIVO!";
+    g_settings.message = text[0] ? text : L"⚠️ CAPS LOCK ATTIVO";
     g_settings.durationSeconds = std::clamp<DWORD>(static_cast<DWORD>(GetDlgItemInt(g_main, ID_DURATION, nullptr, FALSE)), 1, 60);
     g_settings.sound = SendMessageW(g_sound, BM_GETCHECK, 0, 0) == BST_CHECKED;
     g_settings.autostart = SendMessageW(g_autostart, BM_GETCHECK, 0, 0) == BST_CHECKED;
@@ -110,7 +116,7 @@ void SaveSettings() {
         RegCloseKey(key);
     }
     ConfigureAutostart(g_settings.autostart);
-    MessageBoxW(g_main, L"✅ Impostazioni salvate correttamente!", L"Caps Lock Notifier", MB_OK | MB_ICONINFORMATION);
+    MessageBoxW(g_main, L"✅ Impostazioni salvate correttamente.", L"Caps Lock Notifier", MB_OK | MB_ICONINFORMATION);
 }
 
 void PositionPopup() {
@@ -144,82 +150,124 @@ void CheckCapsLock() {
 void AddLabel(HWND parent, const wchar_t* text, int x, int y, int width, int height, HFONT font = nullptr) {
     HWND label = CreateWindowW(L"STATIC", text, WS_CHILD | WS_VISIBLE, x, y, width, height, parent, nullptr, g_instance, nullptr);
     if (font) SendMessageW(label, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+    SetWindowTextW(label, text);
+}
+
+void PaintMainWindow(HWND hwnd) {
+    PAINTSTRUCT ps{};
+    HDC dc = BeginPaint(hwnd, &ps);
+    RECT rect{};
+    GetClientRect(hwnd, &rect);
+
+    HBRUSH bgBrush = CreateSolidBrush(kBgColor);
+    FillRect(dc, &rect, bgBrush);
+    DeleteObject(bgBrush);
+
+    RECT header{};
+    header.left = 0;
+    header.top = 0;
+    header.right = rect.right;
+    header.bottom = 70;
+
+    HBRUSH headerBrush = CreateSolidBrush(kHeaderColor);
+    FillRect(dc, &header, headerBrush);
+    DeleteObject(headerBrush);
+
+    SetTextColor(dc, RGB(255, 255, 255));
+    SetBkMode(dc, TRANSPARENT);
+    SelectObject(dc, g_titleFont);
+    RECT titleRect = header;
+    titleRect.left += 18;
+    titleRect.top += 18;
+    DrawTextW(dc, L"Caps Lock Notifier", -1, &titleRect, DT_LEFT | DT_SINGLELINE);
+
+    HBRUSH accentBrush = CreateSolidBrush(kAccentColor);
+    RECT accentRect = rect;
+    accentRect.top = 70;
+    accentRect.bottom = 74;
+    FillRect(dc, &accentRect, accentBrush);
+    DeleteObject(accentBrush);
+
+    EndPaint(hwnd, &ps);
 }
 
 void CreateMainControls(HWND hwnd) {
-    AddLabel(hwnd, L"📝 Messaggio da mostrare quando Caps Lock viene attivato:", 24, 16, 512, 22, g_titleFont);
-    g_message = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", g_settings.message.c_str(), 
-                                WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 24, 42, 512, 32, hwnd, 
+    AddLabel(hwnd, L"📝 Messaggio da mostrare quando Caps Lock viene attivato:", 24, 92, 512, 22, g_smallFont);
+    g_message = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", g_settings.message.c_str(),
+                                WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | WS_TABSTOP,
+                                24, 118, 512, 32, hwnd,
                                 reinterpret_cast<HMENU>(ID_MESSAGE), g_instance, nullptr);
     SendMessageW(g_message, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
+    SetWindowTextW(g_message, g_settings.message.c_str());
 
-    AddLabel(hwnd, L"⏱️  Durata della notifica (secondi, 1-60):", 24, 86, 300, 22, g_titleFont);
-    g_duration = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", std::to_wstring(g_settings.durationSeconds).c_str(), 
-                                 WS_CHILD | WS_VISIBLE | ES_NUMBER, 24, 112, 80, 32, hwnd, 
+    AddLabel(hwnd, L"⏱️ Durata della notifica (secondi, 1-60):", 24, 168, 300, 22, g_smallFont);
+    g_duration = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", std::to_wstring(g_settings.durationSeconds).c_str(),
+                                 WS_CHILD | WS_VISIBLE | ES_NUMBER | WS_TABSTOP,
+                                 24, 194, 96, 32, hwnd,
                                  reinterpret_cast<HMENU>(ID_DURATION), g_instance, nullptr);
     SendMessageW(g_duration, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
 
-    g_sound = CreateWindowW(L"BUTTON", L"🔊 Riproduci un suono", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 
-                           24, 158, 250, 28, hwnd, reinterpret_cast<HMENU>(ID_SOUND), g_instance, nullptr);
+    g_sound = CreateWindowW(L"BUTTON", L"🔊 Riproduci un suono", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
+                           24, 240, 240, 28, hwnd, reinterpret_cast<HMENU>(ID_SOUND), g_instance, nullptr);
     SendMessageW(g_sound, BM_SETCHECK, g_settings.sound ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(g_sound, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
 
-    g_autostart = CreateWindowW(L"BUTTON", L"🚀 Avvia automaticamente con Windows", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 
-                               24, 194, 350, 28, hwnd, reinterpret_cast<HMENU>(ID_AUTOSTART), g_instance, nullptr);
+    g_autostart = CreateWindowW(L"BUTTON", L"🚀 Avvia automaticamente con Windows", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
+                               24, 274, 360, 28, hwnd, reinterpret_cast<HMENU>(ID_AUTOSTART), g_instance, nullptr);
     SendMessageW(g_autostart, BM_SETCHECK, g_settings.autostart ? BST_CHECKED : BST_UNCHECKED, 0);
     SendMessageW(g_autostart, WM_SETFONT, reinterpret_cast<WPARAM>(g_normalFont), TRUE);
 
-    HWND save = CreateWindowW(L"BUTTON", L"💾 Salva impostazioni", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON, 
-                             24, 240, 200, 36, hwnd, reinterpret_cast<HMENU>(ID_SAVE), g_instance, nullptr);
+    HWND save = CreateWindowW(L"BUTTON", L"💾 Salva impostazioni", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
+                             24, 316, 200, 38, hwnd, reinterpret_cast<HMENU>(ID_SAVE), g_instance, nullptr);
     SendMessageW(save, WM_SETFONT, reinterpret_cast<WPARAM>(g_titleFont), TRUE);
 }
 
 void DrawGradient(HDC hdc, const RECT& rect, COLORREF color1, COLORREF color2) {
-    int steps = rect.bottom - rect.top;
-    for (int i = 0; i < steps; i++) {
-        int r1 = GetRValue(color1);
-        int g1 = GetGValue(color1);
-        int b1 = GetBValue(color1);
-        int r2 = GetRValue(color2);
-        int g2 = GetGValue(color2);
-        int b2 = GetBValue(color2);
-
-        int r = r1 + (r2 - r1) * i / steps;
-        int g = g1 + (g2 - g1) * i / steps;
-        int b = b1 + (b2 - b1) * i / steps;
+    const int height = rect.bottom - rect.top;
+    for (int y = 0; y < height; ++y) {
+        const double t = height > 1 ? static_cast<double>(y) / (height - 1) : 0.0;
+        const int r = static_cast<int>(GetRValue(color1) + (GetRValue(color2) - GetRValue(color1)) * t);
+        const int g = static_cast<int>(GetGValue(color1) + (GetGValue(color2) - GetGValue(color1)) * t);
+        const int b = static_cast<int>(GetBValue(color1) + (GetBValue(color2) - GetBValue(color1)) * t);
 
         HPEN pen = CreatePen(PS_SOLID, 1, RGB(r, g, b));
         SelectObject(hdc, pen);
-        MoveToEx(hdc, rect.left, rect.top + i, nullptr);
-        LineTo(hdc, rect.right, rect.top + i);
+        MoveToEx(hdc, rect.left, rect.top + y, nullptr);
+        LineTo(hdc, rect.right, rect.top + y);
         DeleteObject(pen);
     }
 }
 
 LRESULT CALLBACK PopupProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     if (message == WM_PAINT) {
-        PAINTSTRUCT ps{}; 
-        HDC dc = BeginPaint(hwnd, &ps); 
-        RECT rect{}; 
+        PAINTSTRUCT ps{};
+        HDC dc = BeginPaint(hwnd, &ps);
+        RECT rect{};
         GetClientRect(hwnd, &rect);
 
-        // Gradient background (dark red to orange)
-        DrawGradient(dc, rect, RGB(220, 50, 50), RGB(240, 100, 50));
+        const RECT outer = rect;
+        HBRUSH fillBrush = CreateSolidBrush(RGB(255, 136, 64));
+        FillRect(dc, &outer, fillBrush);
+        DeleteObject(fillBrush);
 
-        // Border
-        HBRUSH borderBrush = CreateSolidBrush(RGB(255, 150, 50));
-        FrameRect(dc, &rect, borderBrush);
-        DeleteObject(borderBrush);
+        RECT inner = rect;
+        InflateRect(&inner, -6, -6);
+        HBRUSH innerBrush = CreateSolidBrush(RGB(255, 150, 80));
+        FillRect(dc, &inner, innerBrush);
+        DeleteObject(innerBrush);
 
-        // Text
         SetBkMode(dc, TRANSPARENT);
         SetTextColor(dc, RGB(255, 255, 255));
-        HFONT boldFont = CreateFontW(28, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-        SelectObject(dc, boldFont);
-        DrawTextW(dc, g_settings.message.c_str(), -1, &rect, DT_CENTER | DT_VCENTER | DT_WORDBREAK | DT_SINGLELINE);
-        DeleteObject(boldFont);
+        SelectObject(dc, g_titleFont);
 
-        EndPaint(hwnd, &ps); 
+        RECT textRect = rect;
+        textRect.left += 18;
+        textRect.right -= 18;
+        textRect.top += 12;
+        textRect.bottom -= 12;
+        DrawTextW(dc, g_settings.message.c_str(), -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+        EndPaint(hwnd, &ps);
         return 0;
     }
     if (message == WM_NCHITTEST) return HTTRANSPARENT;
@@ -227,124 +275,133 @@ LRESULT CALLBACK PopupProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
 }
 
 void ShowContextMenu() {
-    POINT point{}; 
-    GetCursorPos(&point); 
+    POINT point{};
+    GetCursorPos(&point);
     HMENU menu = CreatePopupMenu();
-    AppendMenuW(menu, MF_STRING, ID_TRAY_SHOW, L"⚙️  Apri configurazione");
-    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr); 
+    AppendMenuW(menu, MF_STRING, ID_TRAY_SHOW, L"⚙️ Apri configurazione");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_TRAY_EXIT, L"❌ Esci");
-    SetForegroundWindow(g_main); 
-    TrackPopupMenu(menu, TPM_RIGHTBUTTON, point.x, point.y, 0, g_main, nullptr); 
+    SetForegroundWindow(g_main);
+    TrackPopupMenu(menu, TPM_RIGHTBUTTON, point.x, point.y, 0, g_main, nullptr);
     DestroyMenu(menu);
 }
 
 LRESULT CALLBACK MainProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == WM_CREATE) { 
-        CreateMainControls(hwnd); 
-        SetTimer(hwnd, TIMER_CAPS, 150, nullptr); 
-        return 0; 
+    if (message == WM_CREATE) {
+        CreateMainControls(hwnd);
+        SetTimer(hwnd, TIMER_CAPS, 150, nullptr);
+        return 0;
     }
-    if (message == WM_TIMER) { 
-        if (wParam == TIMER_CAPS) CheckCapsLock(); 
-        else if (wParam == TIMER_POPUP) HidePopup(); 
-        return 0; 
+    if (message == WM_PAINT) {
+        PaintMainWindow(hwnd);
+        return 0;
+    }
+    if (message == WM_ERASEBKGND) {
+        return TRUE;
+    }
+    if (message == WM_TIMER) {
+        if (wParam == TIMER_CAPS) CheckCapsLock();
+        else if (wParam == TIMER_POPUP) HidePopup();
+        return 0;
     }
     if (message == WM_COMMAND) {
-        if (LOWORD(wParam) == ID_SAVE) { 
-            SaveSettings(); 
-            InvalidateRect(g_popup, nullptr, TRUE); 
-            return 0; 
+        if (LOWORD(wParam) == ID_SAVE) {
+            SaveSettings();
+            InvalidateRect(g_popup, nullptr, TRUE);
+            return 0;
         }
-        if (LOWORD(wParam) == ID_TRAY_SHOW) { 
-            ShowWindow(hwnd, SW_SHOW); 
-            SetForegroundWindow(hwnd); 
-            return 0; 
+        if (LOWORD(wParam) == ID_TRAY_SHOW) {
+            ShowWindow(hwnd, SW_SHOW);
+            SetForegroundWindow(hwnd);
+            return 0;
         }
-        if (LOWORD(wParam) == ID_TRAY_EXIT) { 
-            DestroyWindow(hwnd); 
-            return 0; 
+        if (LOWORD(wParam) == ID_TRAY_EXIT) {
+            DestroyWindow(hwnd);
+            return 0;
         }
     }
-    if (message == WM_CLOSE) { 
-        ShowWindow(hwnd, SW_HIDE); 
-        return 0; 
+    if (message == WM_CLOSE) {
+        ShowWindow(hwnd, SW_HIDE);
+        return 0;
     }
-    if (message == WM_DESTROY) { 
-        KillTimer(hwnd, TIMER_CAPS); 
-        KillTimer(hwnd, TIMER_POPUP); 
-        Shell_NotifyIconW(NIM_DELETE, &g_tray); 
-        PostQuitMessage(0); 
-        return 0; 
+    if (message == WM_DESTROY) {
+        KillTimer(hwnd, TIMER_CAPS);
+        KillTimer(hwnd, TIMER_POPUP);
+        Shell_NotifyIconW(NIM_DELETE, &g_tray);
+        PostQuitMessage(0);
+        return 0;
     }
-    if (message == WM_TRAY && lParam == WM_RBUTTONUP) { 
-        ShowContextMenu(); 
-        return 0; 
+    if (message == WM_TRAY && lParam == WM_RBUTTONUP) {
+        ShowContextMenu();
+        return 0;
     }
-    if (message == WM_TRAY && lParam == WM_LBUTTONDBLCLK) { 
-        ShowWindow(hwnd, SW_SHOW); 
-        SetForegroundWindow(hwnd); 
-        return 0; 
+    if (message == WM_TRAY && lParam == WM_LBUTTONDBLCLK) {
+        ShowWindow(hwnd, SW_SHOW);
+        SetForegroundWindow(hwnd);
+        return 0;
     }
-    if (message == WM_CTLCOLERBTNFACE || message == WM_CTLCOLORSTATIC) {
-        HDC dc = reinterpret_cast<HDC>(wParam);
-        SetBkColor(dc, RGB(240, 240, 245));
-        return reinterpret_cast<LRESULT>(CreateSolidBrush(RGB(240, 240, 245)));
+    if (message == WM_CTLCOLOREDIT || message == WM_CTLCOLORSTATIC || message == WM_CTLCOLORBTN) {
+        HDC hdc = reinterpret_cast<HDC>(wParam);
+        SetTextColor(hdc, kTextColor);
+        SetBkColor(hdc, RGB(255, 255, 255));
+        return reinterpret_cast<LRESULT>(CreateSolidBrush(RGB(255, 255, 255)));
     }
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 }
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
-    g_instance = instance; 
+    g_instance = instance;
     LoadSettings();
 
-    // Create fonts
     g_normalFont = CreateFontW(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-    g_titleFont = CreateFontW(18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    g_smallFont = CreateFontW(14, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
+    g_titleFont = CreateFontW(20, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
 
-    WNDCLASSW mainClass{}; 
-    mainClass.lpfnWndProc = MainProc; 
-    mainClass.hInstance = instance; 
-    mainClass.lpszClassName = kClassName; 
-    mainClass.hCursor = LoadCursorW(nullptr, IDC_ARROW); 
-    mainClass.hbrBackground = CreateSolidBrush(RGB(240, 240, 245));
+    WNDCLASSW mainClass{};
+    mainClass.lpfnWndProc = MainProc;
+    mainClass.hInstance = instance;
+    mainClass.lpszClassName = kClassName;
+    mainClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    mainClass.hbrBackground = nullptr;
     RegisterClassW(&mainClass);
 
-    WNDCLASSW popupClass{}; 
-    popupClass.lpfnWndProc = PopupProc; 
-    popupClass.hInstance = instance; 
-    popupClass.lpszClassName = kPopupClassName; 
-    popupClass.hCursor = LoadCursorW(nullptr, IDC_ARROW); 
+    WNDCLASSW popupClass{};
+    popupClass.lpfnWndProc = PopupProc;
+    popupClass.hInstance = instance;
+    popupClass.lpszClassName = kPopupClassName;
+    popupClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     popupClass.hbrBackground = nullptr;
     RegisterClassW(&popupClass);
 
-    g_main = CreateWindowW(kClassName, L"⚙️  Caps Lock Notifier", 
-                          WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 
-                          CW_USEDEFAULT, CW_USEDEFAULT, 580, 320, nullptr, nullptr, instance, nullptr);
-    g_popup = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE, kPopupClassName, L"", 
-                             WS_POPUP, 0, 0, 400, 100, nullptr, nullptr, instance, nullptr);
+    g_main = CreateWindowW(kClassName, L"Caps Lock Notifier",
+                          WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+                          CW_USEDEFAULT, CW_USEDEFAULT, 580, 430, nullptr, nullptr, instance, nullptr);
 
-    g_tray.cbSize = sizeof(g_tray); 
-    g_tray.hWnd = g_main; 
-    g_tray.uID = 1; 
-    g_tray.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP; 
-    g_tray.uCallbackMessage = WM_TRAY; 
+    g_popup = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE, kPopupClassName, L"",
+                             WS_POPUP, 0, 0, 420, 120, nullptr, nullptr, instance, nullptr);
+
+    g_tray.cbSize = sizeof(g_tray);
+    g_tray.hWnd = g_main;
+    g_tray.uID = 1;
+    g_tray.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    g_tray.uCallbackMessage = WM_TRAY;
     g_tray.hIcon = LoadIconW(nullptr, IDI_WARNING);
     wcscpy_s(g_tray.szTip, ARRAYSIZE(g_tray.szTip), L"Caps Lock Notifier");
     Shell_NotifyIconW(NIM_ADD, &g_tray);
 
-    ShowWindow(g_main, show == SW_HIDE ? SW_HIDE : SW_SHOW); 
+    ShowWindow(g_main, show == SW_HIDE ? SW_HIDE : SW_SHOW);
     UpdateWindow(g_main);
 
-    MSG message{}; 
-    while (GetMessageW(&message, nullptr, 0, 0) > 0) { 
-        TranslateMessage(&message); 
-        DispatchMessageW(&message); 
-    } 
-    
+    MSG message{};
+    while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+        TranslateMessage(&message);
+        DispatchMessageW(&message);
+    }
+
     if (g_titleFont) DeleteObject(g_titleFont);
+    if (g_smallFont) DeleteObject(g_smallFont);
     if (g_normalFont) DeleteObject(g_normalFont);
-    if (g_bgBrush) DeleteObject(g_bgBrush);
 
     return static_cast<int>(message.wParam);
 }
