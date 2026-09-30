@@ -71,7 +71,7 @@ chmod +x build.sh
 
 2. **Configurazione:** Apparirà la finestra di impostazioni con:
    - Campo per personalizzare il messaggio
-   - Slider per la durata della notifica (1-60 secondi)
+   - Campo per la durata della notifica (1-60 secondi)
    - Checkbox per abilitare il suono
    - Checkbox per autostart con Windows
 
@@ -84,14 +84,14 @@ chmod +x build.sh
 ### Finestra Principale
 | Opzione | Descrizione | Valore Predefinito |
 |---------|-------------|-------------------|
-| Messaggio | Testo mostrato quando Caps Lock è attivo | "CAPS LOCK ATTIVO" |
+| Messaggio | Testo mostrato quando Caps Lock è attivo | "CAPS LOCK ATTIVO!" |
 | Durata | Secondi per cui la notifica rimane visibile | 3 secondi |
 | Suono | Riproduci un beep di sistema | Abilitato |
 | Autostart | Avvia automaticamente con Windows | Disabilitato |
 
 ### Dati Salvati
 Le impostazioni vengono salvate nel Registro Windows:
-```
+```text
 HKEY_CURRENT_USER\Software\CapsLockNotifier
 ```
 
@@ -128,30 +128,27 @@ cmake --build . --config Release
 ## 🎨 Interfaccia
 
 ### Finestra di Configurazione
-```
-┌─────────────────────────────────────────┐
-│  Configuratore Notifica Caps Lock       │
-├─────────────────────────────────────────┤
-│ Messaggio:                              │
-│ [⚠️ CAPS LOCK ATTIVO!                  │
-│                                         │
-│ Durata (secondi):  [5]                 │
-│                                         │
-│ ☑ Abilita suono                        │
-│ ☑ Avvia al riavvio del PC              │
-│                                         │
-│           [Salva Impostazioni]         │
-└─────────────────────────────────────────┘
+```text
++-----------------------------------------------------------+
+| Caps Lock Notifier - Giuliano Gramaglia                    |
+|-----------------------------------------------------------|
+| Messaggio da mostrare quando Caps Lock viene attivato:     |
+| [ CAPS LOCK ATTIVO!                                        |
+|                                                           |
+| Durata della notifica (secondi, 1-60): [3]                 |
+|                                                           |
+| [x] Riproduci un suono                                     |
+| [x] Avvia automaticamente con Windows                     |
+|                                                           |
+|                 [ Salva impostazioni ]                     |
++-----------------------------------------------------------+
 ```
 
 ### Notifica Popup
-```
-┌────────────────────────────────┐
-│  CAPS LOCK ATTIVO!             │
-│  (scompare automaticamente     │
-│   dopo il tempo configurato)   │
-└────────────────────────────────┘
-(posizionata basso a destra)
+```text
++--------------------------------------------+
+| CAPS LOCK ATTIVO!                          |
++--------------------------------------------+
 ```
 
 ## 🐛 Risoluzione Problemi
@@ -189,7 +186,7 @@ Sei libero di:
 
 ## 👨‍💻 Autore
 
-Sviluppato per **Prof. Ciulla** - Notificatore Caps Lock Personale
+Sviluppato da **Giuliano Gramaglia**.
 
 ## 🤝 Contributi
 
@@ -197,7 +194,7 @@ Le segnalazioni di bug e i suggerimenti sono benvenuti! Apri un [Issue](../../is
 
 ## 📚 Struttura del Progetto
 
-```
+```text
 programma.caps.lock/
 ├── programma.ciulla.cpp         # Codice sorgente principale (Win32 API)
 ├── CMakeLists.txt               # Configurazione CMake
@@ -206,7 +203,8 @@ programma.caps.lock/
 ├── COMPILAZIONE.md              # Guida dettagliata compilazione
 ├── README.md                    # Questo file
 ├── CapsLockNotifier.exe         # Eseguibile precompilato (Release)
-└── LICENSE                      # GPL-3.0
+├── LICENSE                      # GPL-3.0
+└── .gitignore                   # File di ignora Git
 ```
 
 ## 🔐 Sicurezza
