@@ -1,0 +1,79 @@
+QWidget {
+    background: #F4F7FB;
+    color: #1F2937;
+    font-family: "Segoe UI";
+}
+
+QMainWindow {
+    background: #F4F7FB;
+}
+
+QLabel {
+    color: #374151;
+    font-size: 14px;
+}
+
+QLineEdit {
+    background: #FFFFFF;
+    border: 1px solid #D5DDE8;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+}
+
+QLineEdit:focus {
+    border: 2px solid #3B82F6;
+}
+
+QCheckBox {
+    spacing: 10px;
+    font-size: 14px;
+    color: #1F2937;
+}
+
+QPushButton {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2563EB, stop:1 #1D4ED8);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1D4ED8, stop:1 #1E40AF);
+}
+
+QPushButton#secondary {
+    background: #E5E7EB;
+    color: #111827;
+}
+
+QFrame#header {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0F172A, stop:1 #1E3A8A);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+}
+
+QFrame#card {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #E5E7EB;
+    border-radius: 18px;
+}
+
+QLabel#title {
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+QLabel#subtitle {
+    color: #DBEAFE;
+    font-size: 13px;
+}
+
+QLabel#status {
+    color: #10B981;
+    font-size: 12px;
+    font-weight: 600;
+}

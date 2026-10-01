@@ -1,0 +1,23 @@
+#include "caps_monitor.h"
+
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+int main() {
+    caps::CapsMonitor monitor;
+    monitor.start();
+
+    while (monitor.isRunning()) {
+        const bool active = monitor.isCapsLockActive();
+        if (active && !monitor.loadSettings().message.empty()) {
+            std::wcout << L"{\"caps_lock\":true,\"message\":\"" << monitor.getCurrentMessage() << L"\"}\n";
+        } else {
+            std::wcout << L"{\"caps_lock\":false,\"message\":\"" << monitor.getCurrentMessage() << L"\"}\n";
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+
+    return 0;
+}
